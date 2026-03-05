@@ -3,15 +3,13 @@ __pycache__/
 venv/
 .env
 
-data/*
+data/**/*
+!data/**/
 !data/**/*.dvc
 !data/**/.gitignore
 
-mlops_lab_1/data/*
-!mlops_lab_1/data/**/*.dvc
-!mlops_lab_1/data/**/.gitignore
-
-models/*
+models/**/*
+!models/**/
 !models/**/*.dvc
 !models/**/.gitignore
 
