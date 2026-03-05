@@ -8,7 +8,7 @@ stages:
       - mlops_lab_1/data/processed/train_prepared.parquet
 
   train:
-    cmd: python mlops_lab_1/src/trainn.py --data_path mlops_lab_1/data/processed/train_prepared.parquet --n_estimators 200 --max_depth 10 --test_size 0.2 --random_state 42
+    cmd: python mlops_lab_1/src/trainn.py --data_path mlops_lab_1/data/processed/train_prepared.parquet --n_estimators 200 --max_depth 6 --test_size 0.2 --random_state 42
     deps:
       - mlops_lab_1/src/trainn.py
       - mlops_lab_1/data/processed/train_prepared.parquet

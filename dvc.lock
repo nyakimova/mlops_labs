@@ -22,7 +22,7 @@ stages:
   train:
     cmd: python mlops_lab_1/src/trainn.py --data_path 
       mlops_lab_1/data/processed/train_prepared.parquet --n_estimators 200 
-      --max_depth 10 --test_size 0.2 --random_state 42
+      --max_depth 6 --test_size 0.2 --random_state 42
     deps:
     - path: mlops_lab_1/data/processed/train_prepared.parquet
       hash: md5
@@ -35,13 +35,13 @@ stages:
     outs:
     - path: mlops_lab_1/artifacts/feature_importance.png
       hash: md5
-      md5: cd9630eaecbde03e935f08053bb54543
-      size: 72699
+      md5: d92a07f44dca6cd4c06d815c89812a25
+      size: 74282
     - path: mlops_lab_1/artifacts/metrics.json
       hash: md5
-      md5: 5abb5f6d67a164d7400f5be847c7bbd4
-      size: 211
+      md5: e89d2c93765f86f30008b1bfdba9122b
+      size: 216
     - path: mlops_lab_1/models/model.joblib
       hash: md5
-      md5: 2dc06af19fd0389b1fd75fee20524925
-      size: 22311047
+      md5: 512f6d7b3298acfa7a24e360b5cc0f6d
+      size: 1894871
