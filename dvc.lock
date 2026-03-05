@@ -1,0 +1,47 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python mlops_lab_1/src/prepare.py --raw_dir 
+      mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting --out_dir 
+      mlops_lab_1/data/processed
+    deps:
+    - path: mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting
+      hash: md5
+      md5: 882195e599b9d0ee7813aab6e3a0d910.dir
+      size: 18180183
+      nfiles: 5
+    - path: mlops_lab_1/src/prepare.py
+      hash: md5
+      md5: b7a8a2cc44478b4bb81c4a33202c5400
+      size: 2565
+    outs:
+    - path: mlops_lab_1/data/processed/train_prepared.parquet
+      hash: md5
+      md5: ce13a8e9239450f2ffcfb46916e63b2b
+      size: 3104067
+  train:
+    cmd: python mlops_lab_1/src/trainn.py --data_path 
+      mlops_lab_1/data/processed/train_prepared.parquet --n_estimators 200 
+      --max_depth 10 --test_size 0.2 --random_state 42
+    deps:
+    - path: mlops_lab_1/data/processed/train_prepared.parquet
+      hash: md5
+      md5: ce13a8e9239450f2ffcfb46916e63b2b
+      size: 3104067
+    - path: mlops_lab_1/src/trainn.py
+      hash: md5
+      md5: 6a9be8a4310418b81bab875730da67a1
+      size: 4262
+    outs:
+    - path: mlops_lab_1/artifacts/feature_importance.png
+      hash: md5
+      md5: cd9630eaecbde03e935f08053bb54543
+      size: 72699
+    - path: mlops_lab_1/artifacts/metrics.json
+      hash: md5
+      md5: 5abb5f6d67a164d7400f5be847c7bbd4
+      size: 211
+    - path: mlops_lab_1/models/model.joblib
+      hash: md5
+      md5: 2dc06af19fd0389b1fd75fee20524925
+      size: 22311047
