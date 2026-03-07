@@ -1,17 +1,25 @@
 import os
+import random
 import joblib
 import optuna
 import pandas as pd
 import numpy as np
 import mlflow
 import mlflow.sklearn
+import hydra
 
+from omegaconf import DictConfig, OmegaConf
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+
+
+def set_global_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 def load_data(path):
@@ -46,46 +54,84 @@ def build_pipeline(X_train, params):
     )
 
 
-def objective(trial, X_train, X_test, y_train, y_test):
-    params = {
-        "n_estimators": trial.suggest_int("n_estimators", 50, 300),
-        "max_depth": trial.suggest_int("max_depth", 3, 15),
-        "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
-        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 5),
-        "random_state": 42,
-        "n_jobs": -1,
-    }
-
-    with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
-        mlflow.set_tag("trial_number", trial.number)
-        mlflow.set_tag("model_type", "RandomForestRegressor")
-        mlflow.log_params(params)
-
-        model = build_pipeline(X_train, params)
-        model.fit(X_train, y_train)
-
-        preds = model.predict(X_test)
-        rmse = mean_squared_error(y_test, preds, squared=False)
-
-        mlflow.log_metric("rmse", rmse)
-
-    return rmse
+def make_sampler(name: str, seed: int):
+    if name.lower() == "tpe":
+        return optuna.samplers.TPESampler(seed=seed)
+    if name.lower() == "random":
+        return optuna.samplers.RandomSampler(seed=seed)
+    raise ValueError("sampler must be 'tpe' or 'random'")
 
 
-if __name__ == "__main__":
-    X_train, X_test, y_train, y_test = load_data(
-        "data/processed/train_prepared.parquet"
-    )
+def objective_factory(cfg: DictConfig, X_train, X_test, y_train, y_test):
+    def objective(trial):
+        space = cfg.hpo.random_forest
 
-    mlflow.set_experiment("Optuna_RF_Optimization")
+        params = {
+            "n_estimators": trial.suggest_int(
+                "n_estimators",
+                space.n_estimators.low,
+                space.n_estimators.high,
+            ),
+            "max_depth": trial.suggest_int(
+                "max_depth",
+                space.max_depth.low,
+                space.max_depth.high,
+            ),
+            "min_samples_split": trial.suggest_int(
+                "min_samples_split",
+                space.min_samples_split.low,
+                space.min_samples_split.high,
+            ),
+            "min_samples_leaf": trial.suggest_int(
+                "min_samples_leaf",
+                space.min_samples_leaf.low,
+                space.min_samples_leaf.high,
+            ),
+            "random_state": cfg.seed,
+            "n_jobs": -1,
+        }
 
-    with mlflow.start_run(run_name="optuna_parent"):
-        study = optuna.create_study(direction="minimize")
+        with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
+            mlflow.set_tag("trial_number", trial.number)
+            mlflow.set_tag("model_type", cfg.model.type)
+            mlflow.set_tag("sampler", cfg.hpo.sampler)
+            mlflow.set_tag("seed", cfg.seed)
 
-        study.optimize(
-            lambda trial: objective(trial, X_train, X_test, y_train, y_test),
-            n_trials=20
+            mlflow.log_params(params)
+
+            model = build_pipeline(X_train, params)
+            model.fit(X_train, y_train)
+
+            preds = model.predict(X_test)
+            rmse = mean_squared_error(y_test, preds, squared=False)
+
+            mlflow.log_metric("rmse", rmse)
+            return rmse
+
+    return objective
+
+
+@hydra.main(version_base=None, config_path="../config", config_name="config")
+def main(cfg: DictConfig):
+    set_global_seed(cfg.seed)
+
+    mlflow.set_tracking_uri(cfg.mlflow.tracking_uri)
+    mlflow.set_experiment(cfg.mlflow.experiment_name)
+
+    X_train, X_test, y_train, y_test = load_data(cfg.data.processed_path)
+
+    sampler = make_sampler(cfg.hpo.sampler, cfg.seed)
+
+    with mlflow.start_run(run_name=f"hpo_parent_{cfg.hpo.sampler}"):
+        mlflow.log_dict(OmegaConf.to_container(cfg, resolve=True), "config_resolved.json")
+
+        study = optuna.create_study(
+            direction=cfg.hpo.direction,
+            sampler=sampler
         )
+
+        objective = objective_factory(cfg, X_train, X_test, y_train, y_test)
+        study.optimize(objective, n_trials=cfg.hpo.n_trials)
 
         best_params = study.best_params
         best_rmse = study.best_value
@@ -94,7 +140,7 @@ if __name__ == "__main__":
         mlflow.log_metric("best_rmse", best_rmse)
 
         final_params = best_params.copy()
-        final_params["random_state"] = 42
+        final_params["random_state"] = cfg.seed
         final_params["n_jobs"] = -1
 
         final_model = build_pipeline(X_train, final_params)
@@ -115,4 +161,7 @@ if __name__ == "__main__":
         print("Best params:", best_params)
         print("Best RMSE:", best_rmse)
         print("Final RMSE:", final_rmse)
-        print("Saved model:", model_path)
+
+
+if __name__ == "__main__":
+    main()
