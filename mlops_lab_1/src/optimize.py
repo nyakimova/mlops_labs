@@ -70,10 +70,12 @@ if __name__ == "__main__":
     )
 
     study = optuna.create_study(direction="minimize")
+
     study.optimize(
         lambda trial: objective(trial, X_train, X_test, y_train, y_test),
-        n_trials=3
+        n_trials=20
     )
 
     print("Best params:", study.best_params)
     print("Best RMSE:", study.best_value)
+    print("Number of finished trials:", len(study.trials))
