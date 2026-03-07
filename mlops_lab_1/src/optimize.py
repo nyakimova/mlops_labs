@@ -1,6 +1,10 @@
+import os
+import joblib
 import optuna
 import pandas as pd
 import numpy as np
+import mlflow
+import mlflow.sklearn
 
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
@@ -34,13 +38,12 @@ def build_pipeline(X_train, params):
 
     model = RandomForestRegressor(**params)
 
-    pipe = Pipeline(
+    return Pipeline(
         steps=[
             ("prep", preprocessor),
             ("model", model),
         ]
     )
-    return pipe
 
 
 def objective(trial, X_train, X_test, y_train, y_test):
@@ -53,13 +56,18 @@ def objective(trial, X_train, X_test, y_train, y_test):
         "n_jobs": -1,
     }
 
-    model = build_pipeline(X_train, params)
+    with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
+        mlflow.set_tag("trial_number", trial.number)
+        mlflow.set_tag("model_type", "RandomForestRegressor")
+        mlflow.log_params(params)
 
-    model.fit(X_train, y_train)
+        model = build_pipeline(X_train, params)
+        model.fit(X_train, y_train)
 
-    preds = model.predict(X_test)
+        preds = model.predict(X_test)
+        rmse = mean_squared_error(y_test, preds, squared=False)
 
-    rmse = mean_squared_error(y_test, preds, squared=False)
+        mlflow.log_metric("rmse", rmse)
 
     return rmse
 
@@ -69,13 +77,42 @@ if __name__ == "__main__":
         "data/processed/train_prepared.parquet"
     )
 
-    study = optuna.create_study(direction="minimize")
+    mlflow.set_experiment("Optuna_RF_Optimization")
 
-    study.optimize(
-        lambda trial: objective(trial, X_train, X_test, y_train, y_test),
-        n_trials=20
-    )
+    with mlflow.start_run(run_name="optuna_parent"):
+        study = optuna.create_study(direction="minimize")
 
-    print("Best params:", study.best_params)
-    print("Best RMSE:", study.best_value)
-    print("Number of finished trials:", len(study.trials))
+        study.optimize(
+            lambda trial: objective(trial, X_train, X_test, y_train, y_test),
+            n_trials=20
+        )
+
+        best_params = study.best_params
+        best_rmse = study.best_value
+
+        mlflow.log_params(best_params)
+        mlflow.log_metric("best_rmse", best_rmse)
+
+        final_params = best_params.copy()
+        final_params["random_state"] = 42
+        final_params["n_jobs"] = -1
+
+        final_model = build_pipeline(X_train, final_params)
+        final_model.fit(X_train, y_train)
+
+        final_preds = final_model.predict(X_test)
+        final_rmse = mean_squared_error(y_test, final_preds, squared=False)
+
+        mlflow.log_metric("final_rmse", final_rmse)
+
+        os.makedirs("models", exist_ok=True)
+        model_path = "models/best_model.pkl"
+        joblib.dump(final_model, model_path)
+
+        mlflow.log_artifact(model_path)
+        mlflow.sklearn.log_model(final_model, artifact_path="final_model")
+
+        print("Best params:", best_params)
+        print("Best RMSE:", best_rmse)
+        print("Final RMSE:", final_rmse)
+        print("Saved model:", model_path)
