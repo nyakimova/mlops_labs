@@ -7,4 +7,4 @@ joblib==1.4.2
 pytest==8.3.5
 flake8==7.1.1
 black==24.8.0
-cml==0.20.0
+cml
