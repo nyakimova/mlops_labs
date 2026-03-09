@@ -16,8 +16,12 @@ def resolve_csv_path(raw_dir: Path, name: str) -> Path:
         if len(csvs) == 1:
             return csvs[0]
         if len(csvs) > 1:
-            raise ValueError(f"У папці {p} кілька CSV: {[c.name for c in csvs]}. Вкажи точний файл.")
-    raise FileNotFoundError(f"Не знайдено {name} як файл або як папку з CSV у: {raw_dir}")
+            raise ValueError(
+                f"У папці {p} кілька CSV: {[c.name for c in csvs]}. Вкажи точний файл."
+            )
+    raise FileNotFoundError(
+        f"Не знайдено {name} як файл або як папку з CSV у: {raw_dir}"
+    )
 
 
 def main(args):

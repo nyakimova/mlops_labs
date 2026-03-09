@@ -22,7 +22,9 @@ def load_walmart_train(train_csv):
     required = {"Store", "Dept", "Date", "IsHoliday", "Weekly_Sales"}
     missing = required - set(df.columns)
     if missing:
-        raise ValueError("Missing columns: {}. Columns: {}".format(missing, list(df.columns)))
+        raise ValueError(
+            "Missing columns: {}. Columns: {}".format(missing, list(df.columns))
+        )
 
     df["Date"] = pd.to_datetime(df["Date"])
     df["year"] = df["Date"].dt.year
@@ -60,7 +62,9 @@ def plot_feature_importance(fitted_pipe, out_path, top_n=20):
     try:
         feature_names = prep.get_feature_names_out()
     except Exception:
-        feature_names = np.array(["f_{}".format(i) for i in range(len(model.feature_importances_))])
+        feature_names = np.array(
+            ["f_{}".format(i) for i in range(len(model.feature_importances_))]
+        )
 
     importances = model.feature_importances_
     idx = np.argsort(importances)[::-1][:top_n]
@@ -107,7 +111,9 @@ def main(args):
         mlflow.log_param("random_state", args.random_state)
 
         mlflow.set_tag("author", args.author)
-        mlflow.set_tag("dataset", "Walmart Recruiting - Store Sales Forecasting (train.csv)")
+        mlflow.set_tag(
+            "dataset", "Walmart Recruiting - Store Sales Forecasting (train.csv)"
+        )
         mlflow.set_tag("task", "regression")
         mlflow.set_tag("model_type", "RandomForest")
 

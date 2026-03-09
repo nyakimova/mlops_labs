@@ -123,12 +123,11 @@ def main(cfg: DictConfig):
     sampler = make_sampler(cfg.hpo.sampler, cfg.seed)
 
     with mlflow.start_run(run_name=f"hpo_parent_{cfg.hpo.sampler}"):
-        mlflow.log_dict(OmegaConf.to_container(cfg, resolve=True), "config_resolved.json")
-
-        study = optuna.create_study(
-            direction=cfg.hpo.direction,
-            sampler=sampler
+        mlflow.log_dict(
+            OmegaConf.to_container(cfg, resolve=True), "config_resolved.json"
         )
+
+        study = optuna.create_study(direction=cfg.hpo.direction, sampler=sampler)
 
         objective = objective_factory(cfg, X_train, X_test, y_train, y_test)
         study.optimize(objective, n_trials=cfg.hpo.n_trials)

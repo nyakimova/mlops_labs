@@ -27,9 +27,13 @@ def test_data_validation():
 
 
 def test_artifacts_exist():
-    assert os.path.exists("models/model.joblib") or os.path.exists("models/best_model.pkl"), "Model artifact not found"
+    assert os.path.exists("models/model.joblib") or os.path.exists(
+        "models/best_model.pkl"
+    ), "Model artifact not found"
     assert os.path.exists("artifacts/metrics.json"), "metrics.json not found"
-    assert os.path.exists("artifacts/feature_importance.png"), "feature_importance.png not found"
+    assert os.path.exists(
+        "artifacts/feature_importance.png"
+    ), "feature_importance.png not found"
 
 
 def test_quality_gate():
@@ -42,6 +46,6 @@ def test_quality_gate():
     assert "rmse_test" in metrics, "rmse_test not found in metrics.json"
 
     rmse_threshold = 20000
-    assert metrics["rmse_test"] <= rmse_threshold, (
-        f"Quality Gate failed: rmse_test={metrics['rmse_test']} > {rmse_threshold}"
-    )
+    assert (
+        metrics["rmse_test"] <= rmse_threshold
+    ), f"Quality Gate failed: rmse_test={metrics['rmse_test']} > {rmse_threshold}"

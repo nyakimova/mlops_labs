@@ -42,7 +42,9 @@ def plot_feature_importance(fitted_pipe, out_path, top_n=20):
     try:
         feature_names = prep.get_feature_names_out()
     except Exception:
-        feature_names = np.array([f"f_{i}" for i in range(len(model.feature_importances_))])
+        feature_names = np.array(
+            [f"f_{i}" for i in range(len(model.feature_importances_))]
+        )
 
     importances = model.feature_importances_
     idx = np.argsort(importances)[::-1][:top_n]
