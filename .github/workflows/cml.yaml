@@ -26,12 +26,12 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: mlops_lab_1/requirements-ci.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest flake8 black cml
+          pip install -r requirements-ci.txt
 
       - name: Lint with flake8
         run: |
@@ -51,7 +51,7 @@ jobs:
 
       - name: Check quality gate
         run: |
-          python -c "import json; m=json.load(open('artifacts/metrics.json')); assert m['rmse_test'] <= 20000, 'Quality Gate failed'"
+          python -c "import json; m=json.load(open('artifacts/metrics.json')); assert m['rmse_test'] <= 20000, f'Quality Gate failed: rmse_test={m[\"rmse_test\"]}'"
 
       - name: Create CML report
         if: github.event_name == 'pull_request'
