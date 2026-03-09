@@ -1,0 +1,18 @@
+defaults:
+  - model: random_forest
+  - hpo: optuna
+
+seed: 42
+
+mlflow:
+  tracking_uri: "file:./mlruns"
+  experiment_name: "Optuna_RF_Optimization"
+  log_model: true
+
+data:
+  processed_path: "data/processed/train_prepared.parquet"
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
