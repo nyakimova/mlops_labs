@@ -1,10 +1,11 @@
 import json
 import os
+
 import pandas as pd
 
 
 def test_data_validation():
-    data_path = "data/processed/train_prepared.parquet"
+    data_path = os.getenv("DATA_PATH", "data/ci/train_prepared_sample.parquet")
     assert os.path.exists(data_path), f"File not found: {data_path}"
 
     df = pd.read_parquet(data_path)
@@ -46,6 +47,6 @@ def test_quality_gate():
     assert "rmse_test" in metrics, "rmse_test not found in metrics.json"
 
     rmse_threshold = 20000
-    assert (
-        metrics["rmse_test"] <= rmse_threshold
-    ), f"Quality Gate failed: rmse_test={metrics['rmse_test']} > {rmse_threshold}"
+    assert metrics["rmse_test"] <= rmse_threshold, (
+        f"Quality Gate failed: rmse_test={metrics['rmse_test']} > {rmse_threshold}"
+    )
