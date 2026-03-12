@@ -1,0 +1,110 @@
+name: Model CI (Train, Test, Report)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: mlops_lab_1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: mlops_lab_1/requirements-ci.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Install CML
+        run: |
+          npm install -g @dvcorg/cml
+
+      - name: Lint
+        run: |
+          flake8 src tests --count --select=E9,F63,F7,F82,F401 --show-source --statistics --max-line-length=88
+
+      - name: Format check
+        run: |
+          black src tests --check
+
+      - name: Create CI sample dataset
+        run: |
+          mkdir -p data/ci
+          python - <<'PY'
+          import pandas as pd
+          import numpy as np
+
+          n = 300
+          rng = np.random.default_rng(42)
+
+          df = pd.DataFrame({
+              "Store": rng.integers(1, 6, size=n),
+              "Dept": rng.integers(1, 10, size=n),
+              "Weekly_Sales": rng.normal(15000, 4000, size=n).clip(100, None),
+              "IsHoliday": rng.choice(["True", "False"], size=n),
+              "Temperature": rng.normal(60, 15, size=n),
+              "Fuel_Price": rng.normal(3.2, 0.4, size=n),
+              "CPI": rng.normal(210, 10, size=n),
+              "Unemployment": rng.normal(7, 1.2, size=n),
+              "Size": rng.integers(30000, 220000, size=n),
+              "Type": rng.choice(["A", "B", "C"], size=n),
+              "year": rng.choice([2010, 2011, 2012], size=n),
+              "month": rng.integers(1, 13, size=n),
+              "week": rng.integers(1, 53, size=n),
+          })
+
+          df.to_parquet("data/ci/train_prepared_sample.parquet", index=False)
+          PY
+
+      - name: Run pre-train test
+        env:
+          DATA_PATH: data/ci/train_prepared_sample.parquet
+        run: |
+          pytest tests/test_model.py::test_data_validation
+
+      - name: Train model
+        run: |
+          python src/trainn.py --data_path data/ci/train_prepared_sample.parquet
+
+      - name: Run post-train tests
+        run: |
+          pytest tests/test_model.py::test_artifacts_exist tests/test_model.py::test_quality_gate
+
+      - name: Create CML report
+        if: github.event_name == 'pull_request'
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## Model Metrics" > report.md
+          cat artifacts/metrics.json >> report.md
+          echo "" >> report.md
+          echo "## Feature Importance" >> report.md
+          cml publish artifacts/feature_importance.png --md >> report.md
+          cml comment create report.md
+      - name: Upload model artifacts
+        if: github.ref == 'refs/heads/lab1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: |
+            mlops_lab_1/models/
+            mlops_lab_1/artifacts/metrics.json
+            mlops_lab_1/artifacts/feature_importance.png
