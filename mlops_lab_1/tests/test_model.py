@@ -47,6 +47,6 @@ def test_quality_gate():
     assert "rmse_test" in metrics, "rmse_test not found in metrics.json"
 
     rmse_threshold = 20000
-    assert metrics["rmse_test"] <= rmse_threshold, (
-        f"Quality Gate failed: rmse_test={metrics['rmse_test']} > {rmse_threshold}"
-    )
+    assert (
+        metrics["rmse_test"] <= rmse_threshold
+    ), f"Quality Gate failed: rmse_test={metrics['rmse_test']} > {rmse_threshold}"
