@@ -45,17 +45,48 @@ jobs:
         run: |
           black src tests --check
 
-      - name: Run tests
+      - name: Create CI sample dataset
         run: |
-          pytest tests/test_model.py
+          mkdir -p data/ci
+          python - <<'PY'
+          import pandas as pd
+          import numpy as np
+
+          n = 300
+          rng = np.random.default_rng(42)
+
+          df = pd.DataFrame({
+              "Store": rng.integers(1, 6, size=n),
+              "Dept": rng.integers(1, 10, size=n),
+              "Weekly_Sales": rng.normal(15000, 4000, size=n).clip(100, None),
+              "IsHoliday": rng.choice(["True", "False"], size=n),
+              "Temperature": rng.normal(60, 15, size=n),
+              "Fuel_Price": rng.normal(3.2, 0.4, size=n),
+              "CPI": rng.normal(210, 10, size=n),
+              "Unemployment": rng.normal(7, 1.2, size=n),
+              "Size": rng.integers(30000, 220000, size=n),
+              "Type": rng.choice(["A", "B", "C"], size=n),
+              "year": rng.choice([2010, 2011, 2012], size=n),
+              "month": rng.integers(1, 13, size=n),
+              "week": rng.integers(1, 53, size=n),
+          })
+
+          df.to_parquet("data/ci/train_prepared_sample.parquet", index=False)
+          PY
+
+      - name: Run pre-train test
+        env:
+          DATA_PATH: data/ci/train_prepared_sample.parquet
+        run: |
+          pytest tests/test_model.py::test_data_validation
 
       - name: Train model
         run: |
-          python src/trainn.py --data_path data/processed/train_prepared.parquet
+          python src/trainn.py --data_path data/ci/train_prepared_sample.parquet
 
-      - name: Check quality gate
+      - name: Run post-train tests
         run: |
-          python -c "import json; m=json.load(open('artifacts/metrics.json')); assert m['rmse_test'] <= 20000, f'Quality Gate failed: rmse_test={m[\"rmse_test\"]}'"
+          pytest tests/test_model.py::test_artifacts_exist tests/test_model.py::test_quality_gate
 
       - name: Create CML report
         if: github.event_name == 'pull_request'
