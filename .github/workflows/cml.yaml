@@ -99,3 +99,12 @@ jobs:
           echo "## Feature Importance" >> report.md
           cml publish artifacts/feature_importance.png --md >> report.md
           cml comment create report.md
+      - name: Upload model artifacts
+        if: github.ref == 'refs/heads/lab1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: |
+            mlops_lab_1/models/
+            mlops_lab_1/artifacts/metrics.json
+            mlops_lab_1/artifacts/feature_importance.png
