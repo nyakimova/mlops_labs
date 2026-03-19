@@ -89,14 +89,14 @@ def main(args):
         random_state=args.random_state,
     )
 
-    repo_dir = Path("/opt/airflow/repo")
-    artifacts_dir = repo_dir / "artifacts"
-    mlflow_dir = Path("/mlflow_data")
+    project_dir = Path(__file__).resolve().parents[1]
+    artifacts_dir = project_dir / "artifacts"
+    mlflow_dir = project_dir / "mlflow_data"
 
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     mlflow_dir.mkdir(parents=True, exist_ok=True)
 
-    mlflow.set_tracking_uri(mlflow_dir.resolve().as_uri())
+    mlflow.set_tracking_uri(f"file://{mlflow_dir.resolve()}")
     mlflow.set_experiment("Walmart_Sales_MLflow_Airflow")
 
     with mlflow.start_run():
@@ -122,10 +122,10 @@ def main(args):
 
         mlflow.log_metrics(metrics)
 
-        model_path = repo_dir / "model.pkl"
-        metrics_path = repo_dir / "metrics.json"
+        model_path = project_dir / "model.pkl"
+        metrics_path = project_dir / "metrics.json"
         fi_path = artifacts_dir / "feature_importance.png"
-        cm_path = repo_dir / "confusion_matrix.png"
+        cm_path = project_dir / "confusion_matrix.png"
 
         joblib.dump(pipe, model_path)
 
