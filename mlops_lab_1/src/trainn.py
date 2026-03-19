@@ -1,12 +1,12 @@
 import argparse
 import json
-import os
+from pathlib import Path
 
 import joblib
 import matplotlib.pyplot as plt
+import mlflow
 import numpy as np
 import pandas as pd
-
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -56,6 +56,17 @@ def plot_feature_importance(fitted_pipe, out_path, top_n=20):
     plt.close()
 
 
+def plot_predictions(y_true, y_pred, out_path):
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_true, y_pred, alpha=0.5)
+    plt.xlabel("Actual")
+    plt.ylabel("Predicted")
+    plt.title("Actual vs Predicted")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+
+
 def main(args):
     df = pd.read_parquet(args.data_path)
 
@@ -78,29 +89,59 @@ def main(args):
         random_state=args.random_state,
     )
 
-    pipe.fit(X_train, y_train)
+    project_dir = Path(__file__).resolve().parents[1]
+    models_dir = project_dir / "models"
+    artifacts_dir = project_dir / "artifacts"
+    mlflow_dir = project_dir / "mlflow_data"
 
-    pred_train = pipe.predict(X_train)
-    pred_test = pipe.predict(X_test)
+    models_dir.mkdir(parents=True, exist_ok=True)
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    mlflow_dir.mkdir(parents=True, exist_ok=True)
 
-    metrics = {
-        "rmse_train": float(mean_squared_error(y_train, pred_train, squared=False)),
-        "rmse_test": float(mean_squared_error(y_test, pred_test, squared=False)),
-        "mae_train": float(mean_absolute_error(y_train, pred_train)),
-        "mae_test": float(mean_absolute_error(y_test, pred_test)),
-        "r2_train": float(r2_score(y_train, pred_train)),
-        "r2_test": float(r2_score(y_test, pred_test)),
-    }
+    mlflow.set_tracking_uri(f"file://{mlflow_dir.resolve()}")
+    mlflow.set_experiment("Walmart_Sales_MLflow_Airflow")
 
-    os.makedirs("models", exist_ok=True)
-    os.makedirs("artifacts", exist_ok=True)
+    with mlflow.start_run():
+        mlflow.log_param("n_estimators", args.n_estimators)
+        mlflow.log_param("max_depth", args.max_depth)
+        mlflow.log_param("test_size", args.test_size)
+        mlflow.log_param("random_state", args.random_state)
+        mlflow.log_param("model_type", "RandomForestRegressor")
 
-    joblib.dump(pipe, "models/model.joblib")
+        pipe.fit(X_train, y_train)
 
-    with open("artifacts/metrics.json", "w", encoding="utf-8") as f:
-        json.dump(metrics, f, indent=2)
+        pred_train = pipe.predict(X_train)
+        pred_test = pipe.predict(X_test)
 
-    plot_feature_importance(pipe, "artifacts/feature_importance.png", top_n=20)
+        metrics = {
+            "rmse_train": float(mean_squared_error(y_train, pred_train, squared=False)),
+            "rmse_test": float(mean_squared_error(y_test, pred_test, squared=False)),
+            "mae_train": float(mean_absolute_error(y_train, pred_train)),
+            "mae_test": float(mean_absolute_error(y_test, pred_test)),
+            "r2_train": float(r2_score(y_train, pred_train)),
+            "r2_test": float(r2_score(y_test, pred_test)),
+        }
+
+        mlflow.log_metrics(metrics)
+
+        model_path = models_dir / "model.joblib"
+        metrics_path = artifacts_dir / "metrics.json"
+        fi_path = artifacts_dir / "feature_importance.png"
+        cm_path = project_dir / "confusion_matrix.png"
+
+        joblib.dump(pipe, model_path)
+
+        with open(metrics_path, "w", encoding="utf-8") as f:
+            json.dump(metrics, f, indent=2)
+
+        plot_feature_importance(pipe, fi_path, top_n=20)
+        plot_predictions(y_test, pred_test, cm_path)
+
+        print(
+            "RMSE train:", metrics["rmse_train"], "| RMSE test:", metrics["rmse_test"]
+        )
+        print("MAE train:", metrics["mae_train"], "| MAE test:", metrics["mae_test"])
+        print("R2 train:", metrics["r2_train"], "| R2 test:", metrics["r2_test"])
 
 
 if __name__ == "__main__":

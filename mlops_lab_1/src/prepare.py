@@ -25,8 +25,9 @@ def resolve_csv_path(raw_dir: Path, name: str) -> Path:
 
 
 def main(args):
-    raw_dir = Path(args.raw_dir)
-    out_dir = Path(args.out_dir)
+    base_dir = Path(__file__).resolve().parent.parent
+    raw_dir = base_dir / args.raw_dir
+    out_dir = base_dir / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     train_path = resolve_csv_path(raw_dir, "train.csv")
@@ -72,12 +73,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--raw_dir",
         type=str,
-        default="mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting",
+        default="data/raw/walmart-recruiting-store-sales-forecasting",
     )
     parser.add_argument(
         "--out_dir",
         type=str,
-        default="mlops_lab_1/data/processed",
+        default="data/processed",
     )
     args = parser.parse_args()
     main(args)

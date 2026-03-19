@@ -1,5 +1,7 @@
 import argparse
-import os
+import json
+import joblib
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -13,7 +15,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
 
 import mlflow
-import mlflow.sklearn
 
 
 def load_walmart_train(train_csv):
@@ -78,7 +79,20 @@ def plot_feature_importance(fitted_pipe, out_path, top_n=20):
 
 
 def main(args):
-    df = load_walmart_train(args.data_path)
+    base_dir = Path(__file__).resolve().parent.parent
+    data_path = base_dir / args.data_path
+    artifacts_dir = base_dir / "artifacts"
+    metrics_path = base_dir / "metrics.json"
+    model_path = base_dir / "model.pkl"
+    mlruns_dir = Path("/tmp/mlruns_tracking")
+
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    mlruns_dir.mkdir(parents=True, exist_ok=True)
+
+    mlflow.set_tracking_uri(mlruns_dir.resolve().as_uri())
+    mlflow.set_experiment(args.experiment_name)
+
+    df = load_walmart_train(data_path)
 
     target = "Weekly_Sales"
     X = df.drop(columns=[target])
@@ -100,8 +114,6 @@ def main(args):
         max_depth=max_depth,
         random_state=args.random_state,
     )
-
-    mlflow.set_experiment(args.experiment_name)
 
     with mlflow.start_run():
         mlflow.log_param("model", "RandomForestRegressor")
@@ -136,12 +148,22 @@ def main(args):
         mlflow.log_metric("r2_train", r2_train)
         mlflow.log_metric("r2_test", r2_test)
 
-        os.makedirs("artifacts", exist_ok=True)
-        fi_path = "artifacts/feature_importance.png"
+        fi_path = artifacts_dir / "feature_importance.png"
         plot_feature_importance(pipe, fi_path, top_n=20)
-        mlflow.log_artifact(fi_path)
 
-        mlflow.sklearn.log_model(pipe, "model")
+        metrics = {
+            "rmse_train": float(rmse_train),
+            "rmse_test": float(rmse_test),
+            "mae_train": float(mae_train),
+            "mae_test": float(mae_test),
+            "r2_train": float(r2_train),
+            "r2_test": float(r2_test),
+        }
+
+        with open(metrics_path, "w", encoding="utf-8") as f:
+            json.dump(metrics, f, ensure_ascii=False, indent=2)
+
+        joblib.dump(pipe, model_path)
 
         print("RMSE train:", rmse_train, "| RMSE test:", rmse_test)
         print("MAE  train:", mae_train, "| MAE  test:", mae_test)
@@ -155,7 +177,11 @@ if __name__ == "__main__":
         type=str,
         default="data/raw/walmart-recruiting-store-sales-forecasting/train.csv/train.csv",
     )
-    parser.add_argument("--experiment_name", type=str, default="Walmart_Sales_MLflow")
+    parser.add_argument(
+        "--experiment_name",
+        type=str,
+        default="Walmart_Sales_MLflow_Airflow",
+    )
     parser.add_argument("--author", type=str, default="nyakimova")
     parser.add_argument("--n_estimators", type=int, default=200)
     parser.add_argument("--max_depth", type=int, default=10)
