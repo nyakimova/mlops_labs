@@ -90,9 +90,11 @@ def main(args):
     )
 
     project_dir = Path(__file__).resolve().parents[1]
+    models_dir = project_dir / "models"
     artifacts_dir = project_dir / "artifacts"
     mlflow_dir = project_dir / "mlflow_data"
 
+    models_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     mlflow_dir.mkdir(parents=True, exist_ok=True)
 
@@ -122,8 +124,8 @@ def main(args):
 
         mlflow.log_metrics(metrics)
 
-        model_path = project_dir / "model.pkl"
-        metrics_path = project_dir / "metrics.json"
+        model_path = models_dir / "model.joblib"
+        metrics_path = artifacts_dir / "metrics.json"
         fi_path = artifacts_dir / "feature_importance.png"
         cm_path = project_dir / "confusion_matrix.png"
 
