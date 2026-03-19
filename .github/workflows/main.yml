@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 apache-airflow==2.8.1
+          pip install flake8 pytest apache-airflow==2.8.1 mlflow pandas scikit-learn matplotlib joblib pyarrow pyyaml optuna hydra-core
 
       - name: Lint Python code
         run: |
