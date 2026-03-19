@@ -135,7 +135,9 @@ def main(args):
         plot_feature_importance(pipe, fi_path, top_n=20)
         plot_predictions(y_test, pred_test, cm_path)
 
-        print("RMSE train:", metrics["rmse_train"], "| RMSE test:", metrics["rmse_test"])
+        print(
+            "RMSE train:", metrics["rmse_train"], "| RMSE test:", metrics["rmse_test"]
+        )
         print("MAE train:", metrics["mae_train"], "| MAE test:", metrics["mae_test"])
         print("R2 train:", metrics["r2_train"], "| R2 test:", metrics["r2_test"])
 
