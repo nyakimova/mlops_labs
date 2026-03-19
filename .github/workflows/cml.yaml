@@ -95,7 +95,7 @@ jobs:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "## Model Metrics" > report.md
-          cat metrics.json >> report.md
+          cat artifacts/metrics.json >> report.md
           echo "" >> report.md
           echo "## Visualizations" >> report.md
           cml publish confusion_matrix.png --md >> report.md
@@ -107,7 +107,7 @@ jobs:
         with:
           name: model-artifacts
           path: |
-            mlops_lab_1/model.pkl
-            mlops_lab_1/metrics.json
+            mlops_lab_1/models/model.joblib
+            mlops_lab_1/artifacts/metrics.json
             mlops_lab_1/confusion_matrix.png
             mlops_lab_1/artifacts/feature_importance.png
