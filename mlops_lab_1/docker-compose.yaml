@@ -10,12 +10,16 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__WEBSERVER__SECRET_KEY: "lab5_secret_key"
     volumes:
       - ./dags:/opt/airflow/dags
-      - ./:/opt/airflow/project
+      - ../:/opt/airflow/repo
+      - ./airflow_home/airflow.db:/opt/airflow/airflow.db
+      - mlflow_data:/mlflow_data
     ports:
       - "8081:8080"
-    command: bash -c "pip install dvc mlflow pandas scikit-learn matplotlib pyyaml optuna hydra-core && airflow db init && airflow webserver"
+      - "5000:5000"
+    command: bash -c "pip install --user dvc mlflow pandas scikit-learn matplotlib pyyaml optuna hydra-core joblib pyarrow && airflow db init && airflow webserver"
 
   airflow-scheduler:
     image: apache/airflow:2.8.1
@@ -28,7 +32,13 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__WEBSERVER__SECRET_KEY: "lab5_secret_key"
     volumes:
       - ./dags:/opt/airflow/dags
-      - ./:/opt/airflow/project
-    command: bash -c "pip install dvc mlflow pandas scikit-learn matplotlib pyyaml optuna hydra-core && airflow scheduler"
+      - ../:/opt/airflow/repo
+      - ./airflow_home/airflow.db:/opt/airflow/airflow.db
+      - mlflow_data:/mlflow_data
+    command: bash -c "pip install --user dvc mlflow pandas scikit-learn matplotlib pyyaml optuna hydra-core joblib pyarrow && airflow scheduler"
+
+volumes:
+  mlflow_data:

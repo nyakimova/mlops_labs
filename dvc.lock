@@ -2,8 +2,8 @@ schema: '2.0'
 stages:
   prepare:
     cmd: python mlops_lab_1/src/prepare.py --raw_dir 
-      mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting --out_dir 
-      mlops_lab_1/data/processed
+      data/raw/walmart-recruiting-store-sales-forecasting --out_dir 
+      data/processed
     deps:
     - path: mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting
       hash: md5
@@ -12,13 +12,14 @@ stages:
       nfiles: 5
     - path: mlops_lab_1/src/prepare.py
       hash: md5
-      md5: b7a8a2cc44478b4bb81c4a33202c5400
-      size: 2565
+      md5: cbfbec5c93d2e391aeb35d118aa24456
+      size: 2654
     outs:
     - path: mlops_lab_1/data/processed/train_prepared.parquet
       hash: md5
-      md5: ce13a8e9239450f2ffcfb46916e63b2b
-      size: 3104067
+      md5: 140d78b310f51a7efa4b9e7d2157f4ce
+      size: 3104124
+      isexec: true
   train:
     cmd: python mlops_lab_1/src/trainn.py --data_path 
       mlops_lab_1/data/processed/train_prepared.parquet --n_estimators 200 
@@ -26,22 +27,25 @@ stages:
     deps:
     - path: mlops_lab_1/data/processed/train_prepared.parquet
       hash: md5
-      md5: ce13a8e9239450f2ffcfb46916e63b2b
-      size: 3104067
+      md5: 140d78b310f51a7efa4b9e7d2157f4ce
+      size: 3104124
     - path: mlops_lab_1/src/trainn.py
       hash: md5
-      md5: 6a9be8a4310418b81bab875730da67a1
-      size: 4262
+      md5: a251f2c9a9ff40ade1233ee92e766b06
+      size: 4771
     outs:
-    - path: mlops_lab_1/artifacts/feature_importance.png
+    - path: artifacts/feature_importance.png
       hash: md5
-      md5: d92a07f44dca6cd4c06d815c89812a25
-      size: 74282
-    - path: mlops_lab_1/artifacts/metrics.json
+      md5: 58c108b6e5b6cd8ba116f5193441507b
+      size: 72962
+      isexec: true
+    - path: metrics.json
       hash: md5
-      md5: e89d2c93765f86f30008b1bfdba9122b
-      size: 216
-    - path: mlops_lab_1/models/model.joblib
+      md5: c1187f8d36d0714b2cc1ec2ff17fbb70
+      size: 206
+      isexec: true
+    - path: model.pkl
       hash: md5
-      md5: 512f6d7b3298acfa7a24e360b5cc0f6d
-      size: 1894871
+      md5: afee063b9fed8b49c011064fc15603fc
+      size: 1895799
+      isexec: true

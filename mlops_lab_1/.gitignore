@@ -17,3 +17,12 @@ models/**/*
 mlruns/
 .trash/
 artifacts/
+
+airflow_home/
+mlflow_data/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.pid

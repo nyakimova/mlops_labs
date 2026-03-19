@@ -1,11 +1,12 @@
 stages:
   prepare:
-    cmd: python mlops_lab_1/src/prepare.py --raw_dir mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting --out_dir mlops_lab_1/data/processed
+    cmd: python mlops_lab_1/src/prepare.py --raw_dir data/raw/walmart-recruiting-store-sales-forecasting --out_dir data/processed
     deps:
       - mlops_lab_1/src/prepare.py
       - mlops_lab_1/data/raw/walmart-recruiting-store-sales-forecasting
     outs:
-      - mlops_lab_1/data/processed/train_prepared.parquet
+      - mlops_lab_1/data/processed/train_prepared.parquet:
+          cache: false
 
   train:
     cmd: python mlops_lab_1/src/trainn.py --data_path mlops_lab_1/data/processed/train_prepared.parquet --n_estimators 200 --max_depth 6 --test_size 0.2 --random_state 42
@@ -13,7 +14,10 @@ stages:
       - mlops_lab_1/src/trainn.py
       - mlops_lab_1/data/processed/train_prepared.parquet
     outs:
-      - mlops_lab_1/models/model.joblib
-      - mlops_lab_1/artifacts/feature_importance.png
+      - model.pkl:
+          cache: false
+      - artifacts/feature_importance.png:
+          cache: false
     metrics:
-      - mlops_lab_1/artifacts/metrics.json
+      - metrics.json:
+          cache: false
